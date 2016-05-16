@@ -1,13 +1,21 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #define FIFO_NAME_SIZE 6
 #define OG_RW_PERMISSION 0660
+
+int endTime = 0;
+long int parkingSpace = 0;
+int closedPark = 0;
+
+void alarm_handler(int sig) { endTime = 1; }
 /*
 criar o seu FIFO próprio (identificado por “fifo?”, onde '?' será ou  ou E,
  ou S ou O);
@@ -58,7 +66,8 @@ terminem;
 void *threadPricipal(void *arg) {
 
   pthread_t N, S, E, O;
-
+  signal(SIGALRM, alarm_handler);
+  alarm((*(long int *)arg));
   // DUVIDA Ao "matar" os threads exit() vs pthread_cancel TODO
   if (pthread_create(&N, NULL, controlador, "N") != 0) {
     perror("Thread N: ");
@@ -82,27 +91,58 @@ void *threadPricipal(void *arg) {
     pthread_cancel(E);
     return NULL;
   }
-  // Esperar pelo fim dos controladores
-  if (pthread_join(N, NULL) != 0) {
-    perror("threadN : ");
-  }
-  if (pthread_join(S, NULL) != 0) {
-    perror("threadS : ");
-  }
-  if (pthread_join(E, NULL) != 0) {
-    perror("threadE : ");
-  }
-  if (pthread_join(O, NULL) != 0) {
-    perror("threadO : ");
+  // End Time
+  while (1) {
+    if (endTime == 1) {
+      if (pthread_join(N, NULL) != 0) {
+        perror("threadN : ");
+      }
+      if (pthread_join(S, NULL) != 0) {
+        perror("threadS : ");
+      }
+      if (pthread_join(E, NULL) != 0) {
+        perror("threadE : ");
+      }
+      if (pthread_join(O, NULL) != 0) {
+        perror("threadO : ");
+      }
+      break;
+    }
   }
   return NULL;
 }
 
 int main(int argc, char const *argv[]) {
 
+  if (argc != 3) {
+    printf("Wrong number of arguements.\n Usage: parque <N_lugares> "
+           "<T_abertura> \n");
+    return 1;
+  }
+
   pthread_t init;
 
-  if (pthread_create(&init, NULL, threadPricipal, NULL) != 0) {
+  errno = 0;
+
+  long int worktime = strtol(argv[2], NULL, 10);
+
+  if (errno == ERANGE || errno == EINVAL) {
+    perror("convert working time failed");
+  }
+
+  errno = 0;
+
+  parkingSpace = strtol(argv[1], NULL, 10);
+
+  if (errno == ERANGE || errno == EINVAL) {
+    perror("convert parking space failed");
+  }
+
+  // TODO
+
+  printf("%ld %ld \n", worktime, parkingSpace);
+
+  if (pthread_create(&init, NULL, threadPricipal, &worktime) != 0) {
     perror("threadPrincipal: ");
     return -1;
   }
