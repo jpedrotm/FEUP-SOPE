@@ -8,8 +8,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define FIFO_NAME_SIZE 6
+#define FIFO_NAME_SIZE 15
 #define OG_RW_PERMISSION 0660
+
+typedef struct {
+  char access;
+  int id;
+  int t_parking;
+  char fifoPath[256]; // TODO
+} vehicle;
 
 int endTime = 0;
 long int parkingSpace = 0;
@@ -38,20 +45,33 @@ void *controlador(void *arg) {
 
   printf("Thread %s \n", (char *)arg);
 
-  char fifoName[FIFO_NAME_SIZE] = {'f', 'i', 'f', 'o', ((char *)arg)[0], '\0'};
+  char *fifoPath = malloc(sizeof(char) * FIFO_NAME_SIZE);
+  sprintf(fifoPath, "/tmp/fifo%c", (*(char *)arg));
+
   int desFifo;
 
-  if (mkfifo(fifoName, OG_RW_PERMISSION) != 0) {
+  if (mkfifo(fifoPath, OG_RW_PERMISSION) != 0) {
     perror("FIFO CONTROLER: ");
     return NULL;
   }
   // TODO REVER OPEN DO FIFO
-  if ((desFifo = open(fifoName, O_RDONLY | O_NONBLOCK)) == -1) {
+  if ((desFifo = open(fifoPath, O_RDONLY | O_NONBLOCK)) == -1) {
     perror("FIFO OPEN FAILED: ");
-    unlink(fifoName);
+    unlink(fifoPath);
+    return NULL;
   }
 
-  unlink(fifoName); // TODO CHECK UNLINK
+  //  while (!endTime) {
+  vehicle nova;
+
+  if (read(desFifo, &nova, sizeof(vehicle)) > 0) {
+    printf("CARRO: %d\n Time: %d\n acesso: %c\n path: %s \n\n", nova.id,
+           nova.t_parking, nova.access, nova.fifoPath);
+  }
+  //}
+
+  unlink(fifoPath); // TODO CHECK UNLINK
+  free(fifoPath);
   return NULL;
 }
 
