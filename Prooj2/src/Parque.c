@@ -1,3 +1,4 @@
+#include "util.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -9,13 +10,6 @@
 
 #define FIFO_NAME_SIZE 15
 #define OG_RW_PERMISSION 0660
-
-typedef struct {
-  char access;
-  int id;
-  int t_parking;
-  char fifoPath[256]; // TODO
-} vehicle;
 
 int endTime = 0;
 long int parkingSpace = 0;
@@ -61,12 +55,12 @@ void *controlador(void *arg) {
 
   while (!endTime) {
 
-    void *temp;
+    vehicle nova;
 
-    if (read(desFifo, temp, sizeof(vehicle)) > 0) {
-      vehicle nova = *(vehicle *)temp;
-      printf("CARRO: %d\n Time: %d\n acesso: %c\n path: %s \n\n", nova.id,
-             nova.t_parking, nova.access, nova.fifoPath);
+    if (read(desFifo, &nova, sizeof(nova)) > 0) {
+
+      printf("CARRO: %d\n Time: %d\n acesso: %c\n path:  \n\n", nova.id,
+             nova.t_parking, nova.access);
     } // else
     //  break;
   }
@@ -127,12 +121,11 @@ int main(int argc, char const *argv[]) {
 
   do {
     clock_t end = clock();
-    elapsed = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%d", (int)elapsed);
+    elapsed = (double)((end - begin) / CLOCKS_PER_SEC);
+    // printf("%d", (int)elapsed);
   } while (elapsed < worktime);
   endTime = 1;
-  printf("work %d", worktime);
-
+  printf("work %d", (int)worktime);
   // End Time
   if (pthread_join(N, NULL) != 0) {
     perror("threadN : ");

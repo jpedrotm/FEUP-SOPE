@@ -1,3 +1,4 @@
+#include "util.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -12,13 +13,6 @@
 #define OG_RW_PERMISSION 0660
 
 int id = 1;
-
-typedef struct {
-  char access;
-  int id;
-  clock_t t_parking;
-  char fifoPath[256];
-} vehicle;
 
 vehicle create_vehicle(int uTime) {
   vehicle nova;
@@ -67,12 +61,13 @@ void *vehicleThread(void *arg) {
     free(arg);
   }
   vehicle *nova = (vehicle *)(arg);
-
-  sprintf(nova->fifoPath, "/tmp/fifo%d", nova->id);
+  char a[200];
+  // sprintf(nova->fifoPat, "/tmp/fifo%d", nova->id);
+  sprintf(a, "/tmp/fifo%d", nova->id);
   printf("CARRO: %d\n Time: %d\n acesso: %c\n", nova->id, (int)nova->t_parking,
          nova->access);
 
-  mkfifo(nova->fifoPath, OG_RW_PERMISSION);
+  mkfifo(a, OG_RW_PERMISSION);
   int fd;
   // TODO FALTA OPEN VEICULO FIFO
 
@@ -100,13 +95,13 @@ void *vehicleThread(void *arg) {
   }
   //  printf("Depois do switch \n");
   if (fd != -1) {
-    write(fd, &nova, sizeof(nova));
+    write(fd, nova, sizeof(*nova));
   }
 
   close(fd);
   free(nova);
-  unlink(nova->fifoPath);
-
+  // unlink(nova->fifoPath);
+  unlink(a);
   return NULL;
 }
 int main(int argc, char const *argv[]) {
@@ -156,7 +151,7 @@ int main(int argc, char const *argv[]) {
     pthread_t init;
     vehicle *new = malloc(sizeof(vehicle));
     *new = create_vehicle(uRelogio);
-    pthread_create(&init, NULL, vehicleThread, new);
+    pthread_create(&init, NULL, vehicleThread, new); // TODO
 
     waitTime(waitT);
 
