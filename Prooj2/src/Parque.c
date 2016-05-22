@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -11,10 +12,79 @@
 #define FIFO_NAME_SIZE 15
 #define OG_RW_PERMISSION 0660
 
-int endTime = 0;
-long int parkingSpace = 0;
-int closedPark = 0;
+static clock_t startTime = 0;
+static int endTime = 0;
+static int parkingSpace;
+static int currentOcupation = 0;
+static pthread_mutex_t parker_lock = PTHREAD_MUTEX_INITIALIZER;
 
+void closeEntryControllers() {
+  int fd;
+  vehicle finish;
+  finish.id = 0;
+  finish.access = 'S';
+  finish.t_parking = 0;
+
+  if ((fd = open("/tmp/fifoN", O_WRONLY)) == -1) {
+    perror("Vehicle thread Cfifo: ");
+  } else {
+    write(fd, &finish, sizeof(vehicle));
+    close(fd);
+  }
+
+  if ((fd = open("/tmp/fifoE", O_WRONLY)) == -1) {
+    perror("Vehicle thread Cfifo: ");
+  } else {
+    write(fd, &finish, sizeof(vehicle));
+    close(fd);
+  }
+
+  if ((fd = open("/tmp/fifoS", O_WRONLY)) == -1) {
+    perror("Vehicle thread Cfifo: ");
+  } else {
+    write(fd, &finish, sizeof(vehicle));
+    close(fd);
+  }
+
+  if ((fd = open("/tmp/fifoO", O_WRONLY)) == -1) {
+    perror("Vehicle thread Cfifo: ");
+  } else {
+    write(fd, &finish, sizeof(vehicle));
+    close(fd);
+  }
+}
+
+void *arrumador(void *arg) {
+
+  // RECEBER CARRO
+
+  int enters = 0;
+  pthread_detach(pthread_self());
+
+  pthread_mutex_lock(&parker_lock);
+  // ARRUMADOR
+  if (currentOcupation < parkingSpace) {
+    currentOcupation++;
+    enters = 1;
+  } else {
+    // CARRO NAO ENTRA
+  }
+
+  pthread_mutex_unlock(&parker_lock);
+  if (enters) {
+    // ESPERA POR O TEMPO PASSAR
+
+    // SAIR
+    pthread_mutex_lock(&parker_lock);
+    currentOcupation--;
+
+    pthread_mutex_unlock(&parker_lock);
+  }
+
+  // FREE todos os recursos;
+  // fechar fifo veiculo;
+  return NULL;
+}
 /*
 criar o seu FIFO próprio (identificado por “fifo?”, onde '?' será ou  ou E,
  ou S ou O);
@@ -40,7 +110,7 @@ void *controlador(void *arg) {
   char *fifoPath = malloc(sizeof(char) * FIFO_NAME_SIZE);
   sprintf(fifoPath, "/tmp/fifo%c", (*(char *)arg));
 
-  int desFifo;
+  int desFifo, red;
 
   if (mkfifo(fifoPath, OG_RW_PERMISSION) != 0) {
     perror("FIFO CONTROLER: ");
@@ -53,18 +123,24 @@ void *controlador(void *arg) {
     return NULL;
   }
 
-  while (!endTime) {
+  while (1) {
 
     vehicle nova;
 
-    if (read(desFifo, &nova, sizeof(nova)) > 0) {
-
+    if ((red = read(desFifo, &nova, sizeof(nova)) > 0)) {
+      printf("LEU \n");
+      if (nova.id == 0) {
+        printf("END READ CICLE %s \n", fifoPath);
+        break;
+      }
       printf("CARRO: %d\n Time: %d\n acesso: %c\n path:  \n\n", nova.id,
              nova.t_parking, nova.access);
-    } // else
-    //  break;
+    } else if (red == -1) {
+      perror("Reading Controller error");
+      break;
+    }
   }
-
+  printf("sai controlador \n");
   unlink(fifoPath); // TODO CHECK UNLINK
   free(fifoPath);
   return NULL;
@@ -78,23 +154,24 @@ int main(int argc, char const *argv[]) {
   }
 
   errno = 0;
-  double worktime = strtol(argv[1], NULL, 10);
+  double worktime = strtol(argv[2], NULL, 10);
   if (errno == ERANGE || errno == EINVAL) {
     perror("convert working time failed");
   }
 
   errno = 0;
-  parkingSpace = strtol(argv[2], NULL, 10);
+  parkingSpace = strtol(argv[1], NULL, 10);
   if (errno == ERANGE || errno == EINVAL) {
     perror("convert parking space failed");
   }
-
+  if ((sem1 = initSem(SEMNAME)) == SEM_FAILED) {
+    exit(3);
+  }
   // TODO
+  //
 
   pthread_t N, S, E, O;
 
-  clock_t begin = clock();
-  double elapsed = 0;
   // \DUVIDA Ao "matar" os threads exit() vs pthread_cancel TODO
   if (pthread_create(&N, NULL, controlador, "N") != 0) {
     perror("Thread N: ");
@@ -119,13 +196,14 @@ int main(int argc, char const *argv[]) {
     pthread_exit(0);
   }
 
-  do {
-    clock_t end = clock();
-    elapsed = (double)((end - begin) / CLOCKS_PER_SEC);
-    // printf("%d", (int)elapsed);
-  } while (elapsed < worktime);
-  endTime = 1;
-  printf("work %d", (int)worktime);
+  startTime = clock();
+
+  sleep(worktime);
+  printf("passa sleep \n");
+  sem_wait(sem1);
+
+  closeEntryControllers();
+  printf("work %d\n", (int)worktime);
   // End Time
   if (pthread_join(N, NULL) != 0) {
     perror("threadN : ");
@@ -139,9 +217,12 @@ int main(int argc, char const *argv[]) {
   if (pthread_join(O, NULL) != 0) {
     perror("threadO : ");
   }
+
+  sem_post(sem1);
   printf("%d\n", endTime);
-  printf("%d\n", (int)elapsed);
+  //  printf("%f\n", elapsed);
   printf("%s\n", "End Main");
 
-  pthread_exit(0);
+  closeSem(sem1, SEMNAME);
+  exit(0);
 }

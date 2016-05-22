@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -12,7 +13,7 @@
 #define FIFO_NAME_BUFF 30
 #define OG_RW_PERMISSION 0660
 
-int id = 1;
+static int id = 1;
 
 vehicle create_vehicle(int uTime) {
   vehicle nova;
@@ -46,6 +47,7 @@ vehicle create_vehicle(int uTime) {
 
   return nova;
 };
+
 void waitTime(clock_t elapsed) {
   clock_t begin = clock();
   clock_t end = clock();
@@ -54,6 +56,7 @@ void waitTime(clock_t elapsed) {
     end = clock();
   }
 }
+
 void *vehicleThread(void *arg) {
 
   if (pthread_detach(pthread_self()) != 0) {
@@ -70,6 +73,10 @@ void *vehicleThread(void *arg) {
   mkfifo(a, OG_RW_PERMISSION);
   int fd;
   // TODO FALTA OPEN VEICULO FIFO
+  //
+  printf("antes de semaforo\n");
+  sem_wait(sem1);
+  printf("depois de semaforo\n");
 
   switch (nova->access) {
   case 'N':
@@ -97,6 +104,9 @@ void *vehicleThread(void *arg) {
   if (fd != -1) {
     write(fd, nova, sizeof(*nova));
   }
+
+  sem_post(sem1);
+  printf("libert de semaforo\n");
 
   close(fd);
   free(nova);
@@ -130,7 +140,9 @@ int main(int argc, char const *argv[]) {
     perror("convert parking space failed");
   }
 
-  // TODO
+  if ((sem1 = initSem(SEMNAME)) == SEM_FAILED) {
+    exit(3);
+  }
 
   // Gerar acesso --------------------------------------------
   clock_t begin = clock();
@@ -148,6 +160,7 @@ int main(int argc, char const *argv[]) {
     } else if (r > 8) {
       waitT = 2 * uRelogio;
     }
+
     pthread_t init;
     vehicle *new = malloc(sizeof(vehicle));
     *new = create_vehicle(uRelogio);
@@ -156,9 +169,9 @@ int main(int argc, char const *argv[]) {
     waitTime(waitT);
 
     end = clock();
-    elapsed = (double)(end - begin) / CLOCKS_PER_SEC;
+    elapsed = (double)((end - begin) / CLOCKS_PER_SEC);
   }
-  printf("%ld\n", elapsed);
+  printf("%d\n", (int)elapsed);
   printf("%s\n", "End Main");
 
   exit(0);
