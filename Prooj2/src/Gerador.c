@@ -48,15 +48,6 @@ vehicle create_vehicle(int uTime) {
   return nova;
 };
 
-void waitTime(clock_t elapsed) {
-  clock_t begin = clock();
-  clock_t end = clock();
-
-  while ((end - begin) < elapsed) {
-    end = clock();
-  }
-}
-
 void *vehicleThread(void *arg) {
 
   if (pthread_detach(pthread_self()) != 0) {

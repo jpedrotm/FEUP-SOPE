@@ -57,32 +57,31 @@ void closeEntryControllers() {
 void *arrumador(void *arg) {
 
   // RECEBER CARRO
-
+  vehicle *carro = (vehicle *)arg;
   int enters = 0;
   pthread_detach(pthread_self());
 
   pthread_mutex_lock(&parker_lock);
-  // ARRUMADOR
   if (currentOcupation < parkingSpace) {
     currentOcupation++;
     enters = 1;
   } else {
     // CARRO NAO ENTRA
+    // ESCREVER NO FIFO DO CARRO
   }
-
   pthread_mutex_unlock(&parker_lock);
   if (enters) {
     // ESPERA POR O TEMPO PASSAR
-
+    waitTime(carro->t_parking);
     // SAIR
     pthread_mutex_lock(&parker_lock);
     currentOcupation--;
-
     pthread_mutex_unlock(&parker_lock);
   }
 
   // FREE todos os recursos;
   // fechar fifo veiculo;
+  free(carro);
   return NULL;
 }
 /*
@@ -124,21 +123,31 @@ void *controlador(void *arg) {
   }
 
   while (1) {
+    pthread_t vi;
+    int arrive = 0;
+    vehicle *nova = (vehicle *)malloc(sizeof(vehicle));
 
-    vehicle nova;
-
-    if ((red = read(desFifo, &nova, sizeof(nova)) > 0)) {
+    if ((red = read(desFifo, nova, sizeof(*nova)) > 0)) {
       printf("LEU \n");
-      if (nova.id == 0) {
+      arrive = 1;
+      printf("CARRO: %d\n Time: %d\n acesso: %c\n path:  \n\n", nova->id,
+             (int)nova->t_parking, nova->access);
+      if (nova->id == 0) {
         printf("END READ CICLE %s \n", fifoPath);
         break;
       }
-      printf("CARRO: %d\n Time: %d\n acesso: %c\n path:  \n\n", nova.id,
-             nova.t_parking, nova.access);
+
+      if (pthread_create(&vi, NULL, arrumador, nova) != 0) {
+        perror("Error creating arrumador thread: ");
+        break;
+      }
+
     } else if (red == -1) {
       perror("Reading Controller error");
       break;
     }
+    if (!arrive)
+      free(nova);
   }
   printf("sai controlador \n");
   unlink(fifoPath); // TODO CHECK UNLINK
