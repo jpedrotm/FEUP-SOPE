@@ -2,6 +2,8 @@ CC = gcc
 CFLAGS  = -Wall  -D_REENTRANT -lpthread
 TARGET = gerador parque
 DEPS = Gerador.c Parque.c util.h
+
+
 all: bin/gerador bin/parque
 
 

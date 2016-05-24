@@ -18,6 +18,7 @@ const char ENCERRADO[] = "encerrado\0";
 const char ORIENTATION[CONTROLLERS] = {'N', 'S', 'E', 'O'};
 const char *CONTROLADORES_FIFOS[CONTROLLERS] = {"/tmp/fifoN", "/tmp/fifoS",
                                                 "/tmp/fifoE", "/tmp/fifoO"};
+
 static sem_t *sem1;
 
 typedef struct {

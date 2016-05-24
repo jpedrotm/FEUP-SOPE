@@ -15,10 +15,11 @@
 #define FILENAME_PARK "parque.log"
 
 static clock_t startTime = 0;
-static int endTime = 0;
+
 static int parkingSpace;
 static int currentOcupation = 0;
 static pthread_mutex_t parker_lock = PTHREAD_MUTEX_INITIALIZER;
+char *ORIENTATION_S[CONTROLLERS] = {"N", "S", "E", "O"};
 static FILE *fp_park;
 
 void closeEntryControllers() {
@@ -94,7 +95,7 @@ void *arrumador(void *arg) {
     write(fd_vehicle, &s_vehicle, sizeof(s_vehicle));
 
     write_park(currentOcupation, carro, SAIDA);
-    printf("ESCREVE SAIDA1n\n");
+
     pthread_mutex_lock(&parker_lock);
     currentOcupation--;
     pthread_mutex_unlock(&parker_lock);
@@ -126,7 +127,7 @@ pedidos a correspondentes thread“arrumador”.
 */
 void *controlador(void *arg) {
 
-  printf("Thread %s \n", (char *)arg);
+  //  printf("Thread %s \n", (char *)arg);
 
   char *fifoPath = malloc(sizeof(char) * FIFO_NAME_SIZE);
   sprintf(fifoPath, "/tmp/fifo%c", (*(char *)arg));
@@ -150,12 +151,9 @@ void *controlador(void *arg) {
     vehicle *nova = (vehicle *)malloc(sizeof(vehicle));
 
     if ((red = read(desFifo, nova, sizeof(*nova)) > 0)) {
-      printf("LEU \n");
+
       arrive = 1;
-      printf("CARRO: %d\n Time: %d\n acesso: %c\n path:  \n\n", nova->id,
-             (int)nova->t_parking, nova->access);
       if (nova->id == 0) {
-        printf("END READ CICLE %s \n", fifoPath);
         break;
       }
 
@@ -171,8 +169,7 @@ void *controlador(void *arg) {
     if (!arrive)
       free(nova);
   }
-  printf("sai controlador \n");
-  unlink(fifoPath); // TODO CHECK UNLINK
+  unlink(fifoPath);
   free(fifoPath);
   return NULL;
 }
@@ -207,63 +204,41 @@ int main(int argc, char const *argv[]) {
   if ((sem1 = initSem(SEMNAME)) == SEM_FAILED) {
     exit(3);
   }
-  // TODO
-  //
 
-  pthread_t N, S, E, O;
+  pthread_t controllers[CONTROLLERS];
 
-  // \DUVIDA Ao "matar" os threads exit() vs pthread_cancel TODO
-  if (pthread_create(&N, NULL, controlador, "N") != 0) {
-    perror("Thread N: ");
-    // pthread_exit(0);
-  }
-  if (pthread_create(&S, NULL, controlador, "S") != 0) {
-    perror("Thread S: ");
-    //  pthread_exit(0);
-  }
-  if (pthread_create(&E, NULL, controlador, "E") != 0) {
-    perror("Thread E: ");
-    //  pthread_cancel(N);
-    //  pthread_cancel(S);
-    // pthread_exit(0);
-  }
-  if (pthread_create(&O, NULL, controlador, "O") != 0) {
-    perror("Thread O: ");
-    //    pthread_cancel(N);
-    //    pthread_cancel(S);
-    //    pthread_cancel(E);
-    //  pthread_exit(0);
+  int i = 0;
+
+  for (; i < CONTROLLERS; i++) {
+    if (pthread_create(&controllers[i], NULL, controlador, ORIENTATION_S[i]) !=
+        0) {
+      perror("Thread Creator: ");
+    }
   }
 
   startTime = clock();
 
   sleep(worktime);
-  printf("passa sleep \n");
+
   sem_wait(sem1);
 
   closeEntryControllers();
 
-  printf("work %d\n", (int)worktime);
   // End Time
-  if (pthread_join(N, NULL) != 0) {
+  if (pthread_join(controllers[0], NULL) != 0) {
     perror("threadN : ");
   }
-  if (pthread_join(S, NULL) != 0) {
+  if (pthread_join(controllers[1], NULL) != 0) {
     perror("threadS : ");
   }
-  if (pthread_join(E, NULL) != 0) {
+  if (pthread_join(controllers[2], NULL) != 0) {
     perror("threadE : ");
   }
-  if (pthread_join(O, NULL) != 0) {
+  if (pthread_join(controllers[3], NULL) != 0) {
     perror("threadO : ");
   }
 
   sem_post(sem1);
 
-  printf("%d\n", endTime);
-  //  printf("%f\n", elapsed);
-  printf("%s\n", "End Main");
-  // fclose(fp_park);
-  //  closeSem(sem1, SEMNAME);
   pthread_exit(0);
 }

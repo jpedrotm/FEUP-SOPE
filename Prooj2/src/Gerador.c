@@ -74,9 +74,7 @@ void *vehicleThread(void *arg) {
     return NULL;
   }
 
-  printf("antes de semaforo\n");
   sem_wait(sem1);
-  printf("depois de semaforo\n");
 
   int fd_dir;
 
@@ -128,12 +126,10 @@ void *vehicleThread(void *arg) {
   }
   sem_post(sem1);
 
-  printf("libert de semaforo\n");
-
   close(fd_dir);
 
   if (read(fd_vehicle, &status, sizeof(status)) == -1) {
-    perror("DDD");
+    perror("read vehicle fifo:");
     close(fd_vehicle);
     free(nova);
     unlink(vehicleFifo);
@@ -143,18 +139,17 @@ void *vehicleThread(void *arg) {
   write_vehicle(nova, status, (clock_t)0);
 
   if (strcmp(status.stat, ENTRADA) == 0) {
-    printf("LEU ENTRADA\n");
     if (read(fd_vehicle, &status, sizeof(status)) == -1) {
-      perror("AAAA");
+      perror("read vehicle fifo");
       close(fd_vehicle);
       free(nova);
       unlink(vehicleFifo);
       return NULL;
     }
-    printf("FIM ENTRADA1\n");
+    // printf("FIM ENTRADA1\n");
     life_end = clock() - life_begin;
     write_vehicle(nova, status, life_end);
-    printf("FIM ENTRADA2\n");
+    //    printf("FIM ENTRADA\n");
   }
   close(fd_vehicle);
   free(nova);
@@ -227,10 +222,6 @@ int main(int argc, char const *argv[]) {
     end = clock();
     elapsed = (double)((end - begin) / CLOCKS_PER_SEC);
   }
-
-  printf("%d\n", (int)elapsed);
-  printf("%s\n", "End Main");
-  // fclose(fp_gerador);
 
   pthread_exit(0);
 }
