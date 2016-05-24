@@ -260,6 +260,7 @@ int main(int argc, char const *argv[]) {
   sem_wait(sem1);
 
   closeEntryControllers();
+
   printf("work %d\n", (int)worktime);
   // End Time
   if (pthread_join(N, NULL) != 0) {
@@ -276,10 +277,11 @@ int main(int argc, char const *argv[]) {
   }
 
   sem_post(sem1);
+
   printf("%d\n", endTime);
   //  printf("%f\n", elapsed);
   printf("%s\n", "End Main");
-  fclose(fp_park);
+  // fclose(fp_park);
   //  closeSem(sem1, SEMNAME);
   pthread_exit(0);
 }
