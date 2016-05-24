@@ -1,0 +1,41 @@
+t(ticks) ; nlug ; id_viat ; observ
+ 2828333 ;    0 ;       1 ; estacionamento
+ 4308141 ;    1 ;       6 ; estacionamento
+ 4324892 ;    2 ;       5 ; estacionamento
+ 4332083 ;    3 ;       7 ; estacionamento
+ 4337381 ;    4 ;       4 ; estacionamento
+ 4346916 ;    5 ;       3 ; estacionamento
+ 4378468 ;    6 ;       2 ; estacionamento
+ 5340898 ;    7 ;       5 ; saida
+ 5349743 ;    6 ;       3 ; saida
+ 5662767 ;    5 ;       9 ; estacionamento
+ 5693687 ;    6 ;       8 ; estacionamento
+ 5809947 ;    7 ;       6 ; saida
+ 6198478 ;    6 ;       8 ; saida
+ 6929253 ;    5 ;       7 ; saida
+ 6989345 ;    4 ;      10 ; estacionamento
+ 7332065 ;    5 ;       1 ; saida
+ 7423802 ;    4 ;       2 ; saida
+ 8322576 ;    3 ;      13 ; estacionamento
+ 8331800 ;    4 ;      11 ; estacionamento
+ 8331850 ;    5 ;      12 ; estacionamento
+ 9165044 ;    6 ;       9 ; saida
+ 9323383 ;    5 ;      13 ; saida
+ 9342431 ;    4 ;       4 ; saida
+10342707 ;    3 ;      11 ; saida
+11018628 ;    2 ;      16 ; estacionamento
+11028167 ;    3 ;      15 ; estacionamento
+11066131 ;    4 ;      14 ; estacionamento
+11341297 ;    5 ;      12 ; saida
+11994572 ;    4 ;      10 ; saida
+12345906 ;    3 ;      17 ; estacionamento
+12849556 ;    4 ;      17 ; saida
+14029546 ;    3 ;      15 ; saida
+14070094 ;    2 ;      14 ; saida
+14522011 ;    1 ;      16 ; saida
+14939142 ;    0 ;      18 ; estacionamento
+14973228 ;    1 ;      19 ; estacionamento
+16300624 ;    2 ;      -1 ; estacionamento
+16300828 ;    3 ;      -1 ; saida
+18479726 ;    2 ;      19 ; saida
+18974855 ;    1 ;      18 ; saida

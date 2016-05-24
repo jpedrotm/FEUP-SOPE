@@ -5,18 +5,21 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #define FIFO_NAME_SIZE 15
 #define OG_RW_PERMISSION 0660
+#define FILENAME_PARK "parque.log"
 
 static clock_t startTime = 0;
 static int endTime = 0;
 static int parkingSpace;
 static int currentOcupation = 0;
 static pthread_mutex_t parker_lock = PTHREAD_MUTEX_INITIALIZER;
+static FILE *fp_park;
 
 void closeEntryControllers() {
   int fd;
@@ -54,33 +57,69 @@ void closeEntryControllers() {
   }
 }
 
+void write_park(int currOcupation, vehicle *veh, const char *vehicleS) {
+
+  char line[LINE_SIZE];
+
+  sprintf(line, "%8ld ; %4d ; %7d ; %s\n", clock() - startTime,
+          currentOcupation, veh->id, vehicleS);
+
+  fprintf(fp_park, "%s", line);
+}
+
 void *arrumador(void *arg) {
 
   // RECEBER CARRO
   vehicle *carro = (vehicle *)arg;
   int enters = 0;
   pthread_detach(pthread_self());
+  char vehicleNameFifo[200];
+  sprintf(vehicleNameFifo, "/tmp/fifo%d", carro->id);
+  int fd_vehicle;
+  if ((fd_vehicle = open(vehicleNameFifo, O_WRONLY)) == -1) {
+    perror("Can't open vehicle fifo from arrumador");
+    free(carro);
+    return NULL;
+  }
 
   pthread_mutex_lock(&parker_lock);
+
+  statusVehicle s_vehicle;
+
   if (currentOcupation < parkingSpace) {
+    write_park(currentOcupation, carro, ESTAC);
+
     currentOcupation++;
     enters = 1;
+
   } else {
-    // CARRO NAO ENTRA
-    // ESCREVER NO FIFO DO CARRO
+
+    strcpy(s_vehicle.stat, CHEIO);
+    write(fd_vehicle, &s_vehicle, sizeof(s_vehicle));
+
+    write_park(currentOcupation, carro, CHEIO);
   }
+
   pthread_mutex_unlock(&parker_lock);
+
   if (enters) {
-    // ESPERA POR O TEMPO PASSAR
+    strcpy(s_vehicle.stat, ENTRADA);
+    write(fd_vehicle, &s_vehicle, sizeof(s_vehicle));
+
     waitTime(carro->t_parking);
-    // SAIR
+
+    strcpy(s_vehicle.stat, SAIDA);
+    write(fd_vehicle, &s_vehicle, sizeof(s_vehicle));
+
+    write_park(currentOcupation, carro, SAIDA);
+    printf("ESCREVE SAIDA1n\n");
     pthread_mutex_lock(&parker_lock);
     currentOcupation--;
     pthread_mutex_unlock(&parker_lock);
   }
 
   // FREE todos os recursos;
-  // fechar fifo veiculo;
+  close(fd_vehicle);
   free(carro);
   return NULL;
 }
@@ -154,6 +193,7 @@ void *controlador(void *arg) {
   free(fifoPath);
   return NULL;
 }
+
 int main(int argc, char const *argv[]) {
 
   if (argc != 3) {
@@ -173,6 +213,14 @@ int main(int argc, char const *argv[]) {
   if (errno == ERANGE || errno == EINVAL) {
     perror("convert parking space failed");
   }
+
+  if ((fp_park = fopen(FILENAME_PARK, "w")) == NULL) {
+    fprintf(stderr, "Error opening parque.log.\n");
+    exit(2);
+  }
+
+  fprintf(fp_park, "t(ticks) ; nlug ; id_viat ; observ\n");
+
   if ((sem1 = initSem(SEMNAME)) == SEM_FAILED) {
     exit(3);
   }
@@ -231,7 +279,7 @@ int main(int argc, char const *argv[]) {
   printf("%d\n", endTime);
   //  printf("%f\n", elapsed);
   printf("%s\n", "End Main");
-
-  closeSem(sem1, SEMNAME);
-  exit(0);
+  fclose(fp_park);
+  //  closeSem(sem1, SEMNAME);
+  pthread_exit(0);
 }

@@ -4,7 +4,16 @@
 #include <stdio.h>
 #include <time.h>
 
-const char SEMNAME[] = "/sync3";
+#define NAMESIZE_STATUS 20
+#define LINE_SIZE 1024
+
+const char SEMNAME[] = "/viriato132";
+const char ENTRADA[] = "entrada\0";
+const char SAIDA[] = "saida\0";
+const char CHEIO[] = "cheio!\0";
+const char FECHADO[] = "fechado\0";
+const char ESTAC[] = "estacionamento\0";
+const char ENCERRADO[] = "encerrado\0";
 
 static sem_t *sem1;
 
@@ -12,8 +21,9 @@ typedef struct {
   char access;
   int id;
   clock_t t_parking;
-  //  char fifoPath[256]; // TODO
 } vehicle;
+
+typedef struct { char stat[NAMESIZE_STATUS]; } statusVehicle;
 
 sem_t *initSem(const char *semName) {
   sem_t *sem = NULL;
@@ -36,7 +46,7 @@ sem_t *initSem(const char *semName) {
     }
   }
 
-  printf("%d\n", (int)sem);
+  // printf("%d\n", (int)sem);
   return sem;
 }
 
