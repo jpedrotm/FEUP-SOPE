@@ -26,28 +26,9 @@ vehicle create_vehicle(int uTime) {
   nova.id = id;
   id++;
 
-  int option = rand() % 4;
-  char access = 'N';
-
-  switch (option) {
-  case 0:
-    access = 'N';
-    break;
-  case 1:
-    access = 'S';
-    break;
-  case 2:
-    access = 'O';
-    break;
-  case 3:
-    access = 'E';
-    break;
-  default:
-    break;
-  }
+  char access = ORIENTATION[rand() % 4];
 
   nova.access = access;
-
   int r = rand() % 10 + 1;
   nova.t_parking = r * uTime;
 
@@ -65,7 +46,7 @@ void write_vehicle(vehicle *veh, statusVehicle status, clock_t life) {
     sprintf(lifeStr, "%ld", life);
   }
 
-  sprintf(line, "%8ld ; %7d ; %4c   ; %10ld ; %6s ; %s\n", clock() - begin,
+  sprintf(line, "%9ld ; %8d ; %5c   ; %11ld ; %7s ; %s\n", clock() - begin,
           veh->id, veh->access, veh->t_parking, lifeStr, status.stat);
   fprintf(fp_gerador, "%s", line);
 }
@@ -85,10 +66,6 @@ void *vehicleThread(void *arg) {
   life_begin = clock();
 
   sprintf(vehicleFifo, "/tmp/fifo%d", nova->id);
-
-  //  printf("CARRO: %d\n Time: %d\n acesso: %c\n", nova->id,
-  //  (int)nova->t_parking,
-  //       nova->access);
 
   mkfifo(vehicleFifo, OG_RW_PERMISSION);
 
@@ -179,30 +156,6 @@ void *vehicleThread(void *arg) {
     write_vehicle(nova, status, life_end);
     printf("FIM ENTRADA2\n");
   }
-
-  /*
-    if ((r = read(fd_vehicle, &status, sizeof(status))) > 0) {
-      write_vehicle(nova, status, (clock_t)0);
-      if (strcmp(status.stat, ENTRADA) == 0) {
-        if ((r = read(fd_vehicle, &status, sizeof(status))) > 0) {
-          life_end = clock() - life_begin;
-          write_vehicle(nova, status, life_end);
-        } else {
-          perror("DDD");
-          close(fd_vehicle);
-          free(nova);
-          unlink(vehicleFifo);
-          return NULL;
-        }
-      } else {
-        perror("AAAA");
-        close(fd_vehicle);
-        free(nova);
-        unlink(vehicleFifo);
-        return NULL;
-      }
-    }*/
-
   close(fd_vehicle);
   free(nova);
   unlink(vehicleFifo);
@@ -274,14 +227,6 @@ int main(int argc, char const *argv[]) {
     end = clock();
     elapsed = (double)((end - begin) / CLOCKS_PER_SEC);
   }
-
-  // CARRO FIM DE GERADOR
-  pthread_t init;
-  vehicle * final = malloc(sizeof(vehicle));
-  final->id = -1;
-  final->t_parking = 100;
-  final->access = 'N';
-  pthread_create(&init, NULL, vehicleThread, final);
 
   printf("%d\n", (int)elapsed);
   printf("%s\n", "End Main");

@@ -28,32 +28,14 @@ void closeEntryControllers() {
   finish.access = 'S';
   finish.t_parking = 0;
 
-  if ((fd = open("/tmp/fifoN", O_WRONLY)) == -1) {
-    perror("Vehicle thread Cfifo: ");
-  } else {
-    write(fd, &finish, sizeof(vehicle));
-    close(fd);
-  }
-
-  if ((fd = open("/tmp/fifoE", O_WRONLY)) == -1) {
-    perror("Vehicle thread Cfifo: ");
-  } else {
-    write(fd, &finish, sizeof(vehicle));
-    close(fd);
-  }
-
-  if ((fd = open("/tmp/fifoS", O_WRONLY)) == -1) {
-    perror("Vehicle thread Cfifo: ");
-  } else {
-    write(fd, &finish, sizeof(vehicle));
-    close(fd);
-  }
-
-  if ((fd = open("/tmp/fifoO", O_WRONLY)) == -1) {
-    perror("Vehicle thread Cfifo: ");
-  } else {
-    write(fd, &finish, sizeof(vehicle));
-    close(fd);
+  int i = 0;
+  for (; i < CONTROLLERS; i++) {
+    if ((fd = open(CONTROLADORES_FIFOS[i], O_WRONLY)) == -1) {
+      perror("Vehicle thread Cfifo: ");
+    } else {
+      write(fd, &finish, sizeof(vehicle));
+      close(fd);
+    }
   }
 }
 
@@ -123,6 +105,7 @@ void *arrumador(void *arg) {
   free(carro);
   return NULL;
 }
+
 /*
 criar o seu FIFO próprio (identificado por “fifo?”, onde '?' será ou  ou E,
  ou S ou O);
@@ -232,25 +215,24 @@ int main(int argc, char const *argv[]) {
   // \DUVIDA Ao "matar" os threads exit() vs pthread_cancel TODO
   if (pthread_create(&N, NULL, controlador, "N") != 0) {
     perror("Thread N: ");
-    pthread_exit(0);
+    // pthread_exit(0);
   }
   if (pthread_create(&S, NULL, controlador, "S") != 0) {
     perror("Thread S: ");
-    pthread_cancel(N);
-    pthread_exit(0);
+    //  pthread_exit(0);
   }
   if (pthread_create(&E, NULL, controlador, "E") != 0) {
     perror("Thread E: ");
-    pthread_cancel(N);
-    pthread_cancel(S);
-    pthread_exit(0);
+    //  pthread_cancel(N);
+    //  pthread_cancel(S);
+    // pthread_exit(0);
   }
   if (pthread_create(&O, NULL, controlador, "O") != 0) {
     perror("Thread O: ");
-    pthread_cancel(N);
-    pthread_cancel(S);
-    pthread_cancel(E);
-    pthread_exit(0);
+    //    pthread_cancel(N);
+    //    pthread_cancel(S);
+    //    pthread_cancel(E);
+    //  pthread_exit(0);
   }
 
   startTime = clock();
